@@ -4,7 +4,7 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "1.8.20"
 }
 
-version = "1.6"
+version = "1.7"
 
 repositories {
     mavenCentral()
@@ -12,12 +12,13 @@ repositories {
 
 dependencies {
     implementation("io.github.microutils:kotlin-logging:3.0.5")
-    implementation("ch.qos.logback:logback-classic:1.4.6")
+    implementation("ch.qos.logback:logback-classic:1.5.13")
     implementation("com.google.code.gson:gson:2.10.1")
 }
 
 intellij {
     version.set("2022.2.5")
+    updateSinceUntilBuild.set(false)
 }
 
 tasks {
@@ -28,7 +29,6 @@ tasks {
     patchPluginXml {
         version.set("${project.version}")
         sinceBuild.set("222")
-        untilBuild.set("251.*")
     }
 
     compileKotlin {
@@ -37,7 +37,7 @@ tasks {
 
     runPluginVerifier {
         ideVersions.set(
-            listOf("2022.1", "2025.1"))
+            listOf("2022.1", "2025.2"))
     }
 }
 

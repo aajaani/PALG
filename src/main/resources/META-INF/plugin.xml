@@ -50,7 +50,11 @@
 
 	<change-notes><![CDATA[
         <p>
-       		 Version 1.5:
+       		 Version 1.7:
+            <ul>
+                <li>Set IntelliJ compatibility range to unlimited</li>
+            </ul>
+       		 Version 1.6:
             <ul>
                 <li>Bumped IntelliJ compatibility range to support 251.*</li>
             </ul>

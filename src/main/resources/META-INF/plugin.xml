@@ -1,10 +1,14 @@
 <idea-plugin>
-	<id>com.palgTempTest</id>
-	<name>PALG TEST TEMP: Programming Activity Log Generator</name>
+	<id>com.palg</id>
 
+	<!-- Text to display as name on Settings | Plugin page -->
+	<name>PALG: Programming Activity Log Generator</name>
+
+	<!-- Indicate this plugin can be loaded in all IntelliJ Platform-based products. -->
 	<depends>com.intellij.modules.platform</depends>
 	<depends>com.intellij.modules.java</depends>
 
+	<!-- Text to display as description on Settings | Plugin page -->
 	<description>
 		<![CDATA[
     <p>

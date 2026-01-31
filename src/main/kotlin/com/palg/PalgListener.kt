@@ -16,6 +16,7 @@ import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileCreateEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent
@@ -32,6 +33,26 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
     private val logger = KotlinLogging.logger {}
     private val gson = GsonBuilder().disableHtmlEscaping().create()
 
+    // check if java module is available (assures PALG can have compatibility with other jetBrains IDE, not just intellij.)
+    private fun isJavaAvailable(): Boolean {
+        return try {
+            Class.forName("com.intellij.lang.java.JavaLanguage")
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    // null if Java module not available
+    private fun getCompilerService(project: Project): Any? {
+        return try {
+            val serviceClass = Class.forName("com.palg.service.PalgCompilerService")
+            project.getService(serviceClass)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
     override fun documentChanged(event: DocumentEvent) {
         val oldLength = event.oldLength
         val newLength = event.newLength
@@ -46,7 +67,7 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
             if(event.newFragment.toString().startsWith("IntellijIdeaRulezzz")){
                 return
             }
-            if(virtualFile == null){ //shellText event
+            if(virtualFile == null){ // ShellText event
                 val activityData = ActivityData(
                     time = PalgUtils.getCurrentDateTime(),
                     sequence = "TextInsert",
@@ -55,7 +76,7 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
                     index = PalgUtils.getIndex(event, event.offset)
                 )
                 logger.info { gson.toJson(activityData) }
-            }else if(!virtualFile.url.startsWith("mock:")){ //shellText event
+            }else if(!virtualFile.url.startsWith("mock:")){ // CodeViewText event (editor)
                 val activityData = ActivityData(
                     time = PalgUtils.getCurrentDateTime(),
                     sequence = "TextInsert",
@@ -68,7 +89,16 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
             }
 
         } else if (newLength < oldLength) {
-            if(virtualFile?.url?.startsWith("mock:") == false) { //shellText event
+            if(virtualFile == null) { // ShellText deletion
+                val activityData = ActivityData(
+                    time = PalgUtils.getCurrentDateTime(),
+                    sequence = "TextDelete",
+                    textWidgetClass = "ShellText",
+                    index1 = PalgUtils.getIndex(event, event.offset),
+                    index2 = PalgUtils.getIndex2(event, event.offset)
+                )
+                logger.info { gson.toJson(activityData) }
+            } else if(!virtualFile.url.startsWith("mock:")) { // CodeViewText deletion (editor)
                 val activityData = ActivityData(
                     time = PalgUtils.getCurrentDateTime(),
                     sequence = "TextDelete",
@@ -125,6 +155,9 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
     }
 
     override fun fileOpened(source: FileEditorManager, file: VirtualFile) {
+        // initialize compiler service if java module is available
+        getCompilerService(source.project)
+
         super.fileOpened(source, file)
         val activityData = ActivityData(
             time = PalgUtils.getCurrentDateTime(),
@@ -175,14 +208,68 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
     }
 
     override fun processStarting(executorId: String, env: ExecutionEnvironment, handler: ProcessHandler) {
-        super.processStarted(executorId, env, handler)
+        super.processStarting(executorId, env, handler)
         val editor = FileEditorManager.getInstance(env.project).selectedTextEditor
         val file = editor?.let { PalgUtils.getVirtualFileByDocument(it.document) }
         val activityData = ActivityData(
             time = PalgUtils.getCurrentDateTime(),
             sequence = "ShellCommand",
-            commandText =  "%${executorId} ${file?.name}",
+            commandText = "%${executorId} ${file?.name}",
         )
         logger.info { gson.toJson(activityData) }
+
+        // hook into compiler service if available
+        getCompilerService(env.project)?.let { service ->
+            try {
+                val serviceClass = service.javaClass
+                serviceClass.getMethod("onRunStarting", String::class.java, String::class.java)
+                    .invoke(service, executorId, file?.name)
+                serviceClass.getMethod("attachToProcess", ProcessHandler::class.java)
+                    .invoke(service, handler)
+            } catch (_: Throwable) {
+
+            }
+        }
+    }
+}
+
+class PalgStartupActivity : ProjectActivity {
+    private val logger = KotlinLogging.logger {}
+    private val gson = GsonBuilder().disableHtmlEscaping().create()
+
+    override suspend fun execute(project: Project) {
+        // capture any files already open when project starts
+        val fileEditorManager = FileEditorManager.getInstance(project)
+        for (file in fileEditorManager.openFiles) {
+            val activityData = ActivityData(
+                time = PalgUtils.getCurrentDateTime(),
+                sequence = "Open",
+                textWidgetClass = "CodeViewText",
+                textWidgetId = PalgUtils.getUUIDFromString(file.url),
+                filename = file.name
+            )
+            logger.info { gson.toJson(activityData) }
+
+            // log file content
+            val editor = fileEditorManager.getSelectedEditor(file)
+            if (editor is TextEditor) {
+                val document = editor.editor.document
+                val contentData = ActivityData(
+                    time = PalgUtils.getCurrentDateTime(),
+                    sequence = "FileContent",
+                    text = document.text,
+                    textWidgetClass = "CodeViewText",
+                    textWidgetId = PalgUtils.getUUIDFromString(file.url),
+                    index = "1.0"
+                )
+                logger.info { gson.toJson(contentData) }
+            }
+        }
+
+        // initialize compiler service if available
+        try {
+            val serviceClass = Class.forName("com.palg.service.PalgCompilerService")
+            project.getService(serviceClass)
+        } catch (_: Throwable) {}
     }
 }

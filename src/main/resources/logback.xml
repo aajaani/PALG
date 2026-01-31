@@ -11,7 +11,7 @@
 		</encoder>
 	</appender>
 
-	<logger name="com.palg" level="INFO">
+	<logger name="com.palg" level="INFO" additivity="false">
 		<appender-ref ref="JSON_FILE" />
 	</logger>
 

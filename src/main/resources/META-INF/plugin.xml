@@ -6,23 +6,24 @@
 
 	<!-- Indicate this plugin can be loaded in all IntelliJ Platform-based products. -->
 	<depends>com.intellij.modules.platform</depends>
+	<depends optional="true" config-file="java-features.xml">com.intellij.modules.java</depends>
 
 	<!-- Text to display as description on Settings | Plugin page -->
 	<description>
 		<![CDATA[
     <p>
-	  The Programming Activity Log Generator (PALG) is an IntelliJ IDEA plugin that generates log files based on user activity. The plugin logs various actions such as text insertions, deletions, pasting, file opening, closing, switching, running, and debugging.
-	<br/><br/>
-	  You can navigate to the log file folder by using the "PALG: Open Log Folder" button after right-clicking in an open editor.
-	<br/><br/>
-	  The purpose of PALG is to enable teachers to track student work by capturing their development activities in log files. PALA (Programming Activity Log Analyzer) can then be used as a web application to analyze the contents of these log files and provide concise analysis results. PALA is capable of opening zip files recursively, allowing for easy analysis of multiple student submissions in a zip file format. PALA works well with Moodle VPL's "Download all submissions" action, which provides a zip file in the format mentioned above.
-	<br/><br/>
-	  Link to the <a href="https://kodu.ut.ee/~kuttrene/PALA/">PALA application</a>
-	<br/>
-	  Link to the <a href="https://github.com/Programming-Activity-Log-Analyser/PALA">PALA repository</a>
-	<br/>
-	  Link to the <a href="https://github.com/Programming-Activity-Log-Analyser/PALG">PALG repository</a>
-	</p>
+      The Programming Activity Log Generator (PALG) is an IntelliJ IDEA plugin that generates log files based on user activity. The plugin logs various actions such as text insertions, deletions, pasting, file opening, closing, switching, running, debugging, and compilation/runtime errors.
+    <br/><br/>
+      You can navigate to the log file folder by using the "PALG: Open Log Folder" button after right-clicking in an open editor.
+    <br/><br/>
+      The purpose of PALG is to enable teachers to track student work by capturing their development activities in log files. PALA (Programming Activity Log Analyzer) can then be used as a web application to analyze the contents of these log files and provide concise analysis results. PALA is capable of opening zip files recursively, allowing for easy analysis of multiple student submissions in a zip file format. PALA works well with Moodle VPL's "Download all submissions" action, which provides a zip file in the format mentioned above.
+    <br/><br/>
+      Link to the <a href="https://kodu.ut.ee/~kuttrene/PALA/">PALA application</a>
+    <br/>
+      Link to the <a href="https://github.com/Programming-Activity-Log-Analyser/PALA">PALA repository</a>
+    <br/>
+      Link to the <a href="https://github.com/Programming-Activity-Log-Analyser/PALG">PALG repository</a>
+    </p>
   ]]>
 	</description>
 
@@ -30,9 +31,9 @@
 
 	<projectListeners>
 		<listener class="com.palg.PalgListener"
-		          topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+				  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
 		<listener class="com.palg.PalgListener"
-		          topic="com.intellij.execution.ExecutionListener"/>
+				  topic="com.intellij.execution.ExecutionListener"/>
 		<listener class="com.palg.PalgListener"
 				  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
 	</projectListeners>
@@ -40,6 +41,7 @@
 	<extensions defaultExtensionNs="com.intellij">
 		<editorFactoryDocumentListener implementation="com.palg.PalgListener"/>
 		<copyPastePreProcessor implementation="com.palg.PalgListener"/>
+		<postStartupActivity implementation="com.palg.PalgStartupActivity"/>
 	</extensions>
 
 	<actions>
@@ -50,27 +52,32 @@
 
 	<change-notes><![CDATA[
         <p>
-       		 Version 1.7:
+            Version 2.0:
+            <ul>
+                <li>Added structured error logging (compile and runtime errors)</li>
+                <li>Added build/run lifecycle events (BuildStart, BuildEnd, RunStart, RunEnd)</li>
+            </ul>
+            Version 1.7:
             <ul>
                 <li>Set IntelliJ compatibility range to unlimited</li>
             </ul>
-       		 Version 1.6:
+            Version 1.6:
             <ul>
                 <li>Bumped IntelliJ compatibility range to support 251.*</li>
             </ul>
-        	Version 1.5:
+            Version 1.5:
             <ul>
                 <li>Added file creation and deletion events</li>
             </ul>
-        	Version 1.4:
+            Version 1.4:
             <ul>
                 <li>Bumped IntelliJ compatibility range to support 243.*</li>
             </ul>
-        	Version 1.3:
+            Version 1.3:
             <ul>
                 <li>Changed logging directory to user home directory</li>
             </ul>
-        	Version 1.2:
+            Version 1.2:
             <ul>
                 <li>Bumped IntelliJ compatibility range to support 241.*</li>
             </ul>

@@ -1,12 +1,12 @@
 # Gradle-specific files
 .gradle
 /build/
-
 # IntelliJ-specific files
 .idea/
 *.iml
 *.ipr
 *.iws
+.intellijPlatform
 
 # Miscellaneous
 *.log

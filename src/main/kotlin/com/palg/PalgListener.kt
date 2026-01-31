@@ -23,6 +23,7 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.psi.PsiFile
 import com.palg.PalgUtils.Companion.getUUIDFromString
 import com.palg.model.ActivityData
+import com.palg.service.PalgCompilerService
 import mu.KotlinLogging
 
 
@@ -46,7 +47,7 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
             if(event.newFragment.toString().startsWith("IntellijIdeaRulezzz")){
                 return
             }
-            if(virtualFile == null){ //shellText event
+            if(virtualFile == null){ // shellText event
                 val activityData = ActivityData(
                     time = PalgUtils.getCurrentDateTime(),
                     sequence = "TextInsert",
@@ -55,7 +56,7 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
                     index = PalgUtils.getIndex(event, event.offset)
                 )
                 logger.info { gson.toJson(activityData) }
-            }else if(!virtualFile.url.startsWith("mock:")){ //shellText event
+            }else if(!virtualFile.url.startsWith("mock:")){ // codeViewText event (editor)
                 val activityData = ActivityData(
                     time = PalgUtils.getCurrentDateTime(),
                     sequence = "TextInsert",
@@ -68,7 +69,16 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
             }
 
         } else if (newLength < oldLength) {
-            if(virtualFile?.url?.startsWith("mock:") == false) { //shellText event
+            if(virtualFile == null) { // shellText deletion, before it had shelltext insert but no deletion, so ill add it, even though doesnt matter
+                val activityData = ActivityData(
+                    time = PalgUtils.getCurrentDateTime(),
+                    sequence = "TextDelete",
+                    textWidgetClass = "ShellText",
+                    index1 = PalgUtils.getIndex(event, event.offset),
+                    index2 = PalgUtils.getIndex2(event, event.offset)
+                )
+                logger.info { gson.toJson(activityData) }
+            } else if(!virtualFile.url.startsWith("mock:")) { // codeViewText deletion (editor)
                 val activityData = ActivityData(
                     time = PalgUtils.getCurrentDateTime(),
                     sequence = "TextDelete",
@@ -125,6 +135,8 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
     }
 
     override fun fileOpened(source: FileEditorManager, file: VirtualFile) {
+        PalgCompilerService.getInstance(source.project)
+
         super.fileOpened(source, file)
         val activityData = ActivityData(
             time = PalgUtils.getCurrentDateTime(),
@@ -175,7 +187,7 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
     }
 
     override fun processStarting(executorId: String, env: ExecutionEnvironment, handler: ProcessHandler) {
-        super.processStarted(executorId, env, handler)
+        super.processStarting(executorId, env, handler)
         val editor = FileEditorManager.getInstance(env.project).selectedTextEditor
         val file = editor?.let { PalgUtils.getVirtualFileByDocument(it.document) }
         val activityData = ActivityData(
@@ -184,5 +196,8 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
             commandText =  "%${executorId} ${file?.name}",
         )
         logger.info { gson.toJson(activityData) }
-    }
+
+        val service = PalgCompilerService.getInstance(env.project)
+        service.onRunStarting(executorId = executorId, filename = file?.name)
+        service.attachToProcess(handler)    }
 }

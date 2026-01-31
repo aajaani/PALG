@@ -5,14 +5,24 @@
 
 	<appender name="JSON_FILE" class="ch.qos.logback.core.FileAppender">
 		<file>${resourcesPath}activity-log_${timestamp}.txt</file>
+		<immediateFlush>true</immediateFlush>
 		<encoder>
+			<!--wrong json format (as mentioned by Kütt aswell, but PALA takes into account)
+			 Not changing it for backwards compativility-->
 			<pattern>%msg,%n</pattern>
 			<charset>UTF-8</charset>
 		</encoder>
 	</appender>
 
-	<logger name="com.palg" level="INFO">
-		<appender-ref ref="JSON_FILE" />
+	<appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+		<appender-ref ref="JSON_FILE"/>
+		<queueSize>1000</queueSize>
+		<discardingThreshold>0</discardingThreshold>
+		<neverBlock>true</neverBlock>
+	</appender>
+
+	<logger name="com.palg" level="INFO" additivity="false">
+		<appender-ref ref="ASYNC" />
 	</logger>
 
 </configuration>

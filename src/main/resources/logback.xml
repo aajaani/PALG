@@ -7,8 +7,6 @@
 		<file>${resourcesPath}activity-log_${timestamp}.txt</file>
 		<immediateFlush>true</immediateFlush>
 		<encoder>
-			<!--wrong json format (as mentioned by Kütt aswell, but PALA takes into account)
-			 Not changing it for backwards compativility-->
 			<pattern>%msg,%n</pattern>
 			<charset>UTF-8</charset>
 		</encoder>

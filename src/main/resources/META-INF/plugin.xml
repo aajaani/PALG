@@ -6,7 +6,7 @@
 
 	<!-- Indicate this plugin can be loaded in all IntelliJ Platform-based products. -->
 	<depends>com.intellij.modules.platform</depends>
-	<depends>com.intellij.modules.java</depends>
+	<depends optional="true" config-file="java-features.xml">com.intellij.modules.java</depends>
 
 	<!-- Text to display as description on Settings | Plugin page -->
 	<description>
@@ -41,7 +41,6 @@
 	<extensions defaultExtensionNs="com.intellij">
 		<editorFactoryDocumentListener implementation="com.palg.PalgListener"/>
 		<copyPastePreProcessor implementation="com.palg.PalgListener"/>
-		<projectService serviceImplementation="com.palg.service.PalgCompilerService"/>
 	</extensions>
 
 	<actions>

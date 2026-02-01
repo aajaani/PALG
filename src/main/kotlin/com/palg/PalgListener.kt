@@ -23,7 +23,6 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.psi.PsiFile
 import com.palg.PalgUtils.Companion.getUUIDFromString
 import com.palg.model.ActivityData
-import com.palg.service.PalgCompilerService
 import mu.KotlinLogging
 
 
@@ -32,6 +31,28 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
 
     private val logger = KotlinLogging.logger {}
     private val gson = GsonBuilder().disableHtmlEscaping().create()
+
+    // check if java module is available (assures PALG can have compatibility with other jetBrains IDE, not just intellij.)
+    private fun isJavaAvailable(): Boolean {
+        return try {
+            Class.forName("com.intellij.lang.java.JavaLanguage")
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    // null if Java module not available
+    private fun getCompilerService(project: Project): Any? {
+        if (!isJavaAvailable()) return null
+        return try {
+            Class.forName("com.palg.service.PalgCompilerService")
+                .getMethod("getInstance", Project::class.java)
+                .invoke(null, project)
+        } catch (_: Throwable) {
+            null
+        }
+    }
 
     override fun documentChanged(event: DocumentEvent) {
         val oldLength = event.oldLength
@@ -47,7 +68,7 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
             if(event.newFragment.toString().startsWith("IntellijIdeaRulezzz")){
                 return
             }
-            if(virtualFile == null){ // shellText event
+            if(virtualFile == null){ // ShellText event
                 val activityData = ActivityData(
                     time = PalgUtils.getCurrentDateTime(),
                     sequence = "TextInsert",
@@ -56,7 +77,7 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
                     index = PalgUtils.getIndex(event, event.offset)
                 )
                 logger.info { gson.toJson(activityData) }
-            }else if(!virtualFile.url.startsWith("mock:")){ // codeViewText event (editor)
+            }else if(!virtualFile.url.startsWith("mock:")){ // CodeViewText event (editor)
                 val activityData = ActivityData(
                     time = PalgUtils.getCurrentDateTime(),
                     sequence = "TextInsert",
@@ -69,7 +90,7 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
             }
 
         } else if (newLength < oldLength) {
-            if(virtualFile == null) { // shellText deletion, before it had shelltext insert but no deletion, so ill add it, even though doesnt matter
+            if(virtualFile == null) { // ShellText deletion
                 val activityData = ActivityData(
                     time = PalgUtils.getCurrentDateTime(),
                     sequence = "TextDelete",
@@ -78,7 +99,7 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
                     index2 = PalgUtils.getIndex2(event, event.offset)
                 )
                 logger.info { gson.toJson(activityData) }
-            } else if(!virtualFile.url.startsWith("mock:")) { // codeViewText deletion (editor)
+            } else if(!virtualFile.url.startsWith("mock:")) { // CodeViewText deletion (editor)
                 val activityData = ActivityData(
                     time = PalgUtils.getCurrentDateTime(),
                     sequence = "TextDelete",
@@ -135,7 +156,8 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
     }
 
     override fun fileOpened(source: FileEditorManager, file: VirtualFile) {
-        PalgCompilerService.getInstance(source.project)
+        // initialize compiler service if java module is available
+        getCompilerService(source.project)
 
         super.fileOpened(source, file)
         val activityData = ActivityData(
@@ -193,11 +215,21 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
         val activityData = ActivityData(
             time = PalgUtils.getCurrentDateTime(),
             sequence = "ShellCommand",
-            commandText =  "%${executorId} ${file?.name}",
+            commandText = "%${executorId} ${file?.name}",
         )
         logger.info { gson.toJson(activityData) }
 
-        val service = PalgCompilerService.getInstance(env.project)
-        service.onRunStarting(executorId = executorId, filename = file?.name)
-        service.attachToProcess(handler)    }
+        // only hook into compiler service if java module is available
+        if (isJavaAvailable()) {
+            try {
+                val serviceClass = Class.forName("com.palg.service.PalgCompilerService")
+                val service = serviceClass.getMethod("getInstance", Project::class.java).invoke(null, env.project)
+                serviceClass.getMethod("onRunStarting", String::class.java, String::class.java)
+                    .invoke(service, executorId, file?.name)
+                serviceClass.getMethod("attachToProcess", ProcessHandler::class.java)
+                    .invoke(service, handler)
+            } catch (_: Throwable) {
+            }
+        }
+    }
 }

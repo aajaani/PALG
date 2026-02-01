@@ -1,0 +1,5 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <projectService serviceImplementation="com.palg.service.PalgCompilerService"/>
+    </extensions>
+</idea-plugin>

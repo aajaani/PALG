@@ -12,15 +12,8 @@
 		</encoder>
 	</appender>
 
-	<appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
-		<appender-ref ref="JSON_FILE"/>
-		<queueSize>1000</queueSize>
-		<discardingThreshold>0</discardingThreshold>
-		<neverBlock>true</neverBlock>
-	</appender>
-
 	<logger name="com.palg" level="INFO" additivity="false">
-		<appender-ref ref="ASYNC" />
+		<appender-ref ref="JSON_FILE" />
 	</logger>
 
 </configuration>

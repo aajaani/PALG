@@ -16,6 +16,7 @@ import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileCreateEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent
@@ -229,5 +230,46 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
 
             }
         }
+    }
+}
+
+class PalgStartupActivity : ProjectActivity {
+    private val logger = KotlinLogging.logger {}
+    private val gson = GsonBuilder().disableHtmlEscaping().create()
+
+    override suspend fun execute(project: Project) {
+        // capture any files already open when project starts
+        val fileEditorManager = FileEditorManager.getInstance(project)
+        for (file in fileEditorManager.openFiles) {
+            val activityData = ActivityData(
+                time = PalgUtils.getCurrentDateTime(),
+                sequence = "Open",
+                textWidgetClass = "CodeViewText",
+                textWidgetId = PalgUtils.getUUIDFromString(file.url),
+                filename = file.name
+            )
+            logger.info { gson.toJson(activityData) }
+
+            // log file content
+            val editor = fileEditorManager.getSelectedEditor(file)
+            if (editor is TextEditor) {
+                val document = editor.editor.document
+                val contentData = ActivityData(
+                    time = PalgUtils.getCurrentDateTime(),
+                    sequence = "FileContent",
+                    text = document.text,
+                    textWidgetClass = "CodeViewText",
+                    textWidgetId = PalgUtils.getUUIDFromString(file.url),
+                    index = "1.0"
+                )
+                logger.info { gson.toJson(contentData) }
+            }
+        }
+
+        // initialize compiler service if available
+        try {
+            val serviceClass = Class.forName("com.palg.service.PalgCompilerService")
+            project.getService(serviceClass)
+        } catch (_: Throwable) {}
     }
 }

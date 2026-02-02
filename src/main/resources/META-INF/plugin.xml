@@ -41,6 +41,7 @@
 	<extensions defaultExtensionNs="com.intellij">
 		<editorFactoryDocumentListener implementation="com.palg.PalgListener"/>
 		<copyPastePreProcessor implementation="com.palg.PalgListener"/>
+		<postStartupActivity implementation="com.palg.PalgStartupActivity"/>
 	</extensions>
 
 	<actions>

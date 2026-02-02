@@ -44,11 +44,9 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
 
     // null if Java module not available
     private fun getCompilerService(project: Project): Any? {
-        if (!isJavaAvailable()) return null
         return try {
-            Class.forName("com.palg.service.PalgCompilerService")
-                .getMethod("getInstance", Project::class.java)
-                .invoke(null, project)
+            val serviceClass = Class.forName("com.palg.service.PalgCompilerService")
+            project.getService(serviceClass)
         } catch (_: Throwable) {
             null
         }
@@ -219,16 +217,16 @@ class PalgListener : FileEditorManagerListener, DocumentListener, CopyPastePrePr
         )
         logger.info { gson.toJson(activityData) }
 
-        // only hook into compiler service if java module is available
-        if (isJavaAvailable()) {
+        // hook into compiler service if available
+        getCompilerService(env.project)?.let { service ->
             try {
-                val serviceClass = Class.forName("com.palg.service.PalgCompilerService")
-                val service = serviceClass.getMethod("getInstance", Project::class.java).invoke(null, env.project)
+                val serviceClass = service.javaClass
                 serviceClass.getMethod("onRunStarting", String::class.java, String::class.java)
                     .invoke(service, executorId, file?.name)
                 serviceClass.getMethod("attachToProcess", ProcessHandler::class.java)
                     .invoke(service, handler)
             } catch (_: Throwable) {
+
             }
         }
     }

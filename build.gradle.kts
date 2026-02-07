@@ -34,9 +34,13 @@ intellijPlatform {
         version = project.version.toString()
         ideaVersion {
             sinceBuild = "241"
-            // is it a good idea though?
-            untilBuild = null
+            untilBuild = provider { null }
         }
     }
     buildSearchableOptions = false
+    pluginVerification {
+        ides {
+            recommended()
+        }
+    }
 }
